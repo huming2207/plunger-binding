@@ -1,0 +1,16 @@
+{
+  "name": "plunger-binding-win32-x64-msvc",
+  "os": [
+    "win32"
+  ],
+  "cpu": [
+    "x64"
+  ],
+  "main": "plunger-binding.win32-x64-msvc.node",
+  "files": [
+    "plunger-binding.win32-x64-msvc.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  }
+}

@@ -1,0 +1,25 @@
+[package]
+edition = "2018"
+name = "plunger-binding"
+version = "0.0.0"
+
+[lib]
+crate-type = ["cdylib"]
+
+[dependencies]
+napi = { version = "1", features = ["serde-json"] }
+napi-derive = "1"
+serde = "1.0"
+serde_json = "1.0"
+probe-rs = { git = "https://github.com/probe-rs/probe-rs", branch = "master" }
+thiserror = "1.0"
+anyhow = "1.0"
+clap = "3.0.0-beta.2"
+rusb = "0.8"
+radix_fmt = "1.0.0"
+
+[build-dependencies]
+napi-build = "1"
+
+[profile.release]
+lto = true
