@@ -71,6 +71,8 @@ impl Task for GenericFlasherTask {
         // cb.boost_clock(&mut session)?;
     
         let mut option = DownloadOptions::new();
+        option.verify = true;
+        
         if self.skip_erase {
             option.keep_unwritten_bytes = true;
             option.skip_erase = true;
