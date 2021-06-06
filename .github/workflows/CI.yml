@@ -91,7 +91,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        os: [ubuntu-latest, macos-latest]
+        os: [ubuntu-latest]
         node: [10, 12, 14, 15]
     runs-on: ${{ matrix.os }}
 
@@ -125,58 +125,6 @@ jobs:
 
       - name: Test bindings
         run: yarn test
-
-  test-linux-aarch64:
-    name: stable - aarch64-unknown-linux-gnu - node@${{ matrix.node }}
-    runs-on: ubuntu-latest
-
-    needs:
-      - build-linux-aarch64
-    strategy:
-      fail-fast: false
-      matrix:
-        node: [10, 12, 14, 15]
-
-    steps:
-      - run: docker run --rm --privileged multiarch/qemu-user-static:register --reset
-
-      - uses: actions/checkout@v2
-
-      - name: Setup node
-        uses: actions/setup-node@v2
-        with:
-          node-version: ${{ matrix.node }}
-          check-latest: true
-
-      - name: Cache NPM dependencies
-        uses: actions/cache@v1
-        with:
-          path: node_modules
-          key: npm-cache-test-linux-aarch64-gnu-node@${{ matrix.node }}-${{ hashFiles('yarn.lock') }}
-
-      - name: 'Install dependencies'
-        run: yarn install --frozen-lockfile --registry https://registry.npmjs.org --network-timeout 300000
-
-      - name: Download artifacts
-        uses: actions/download-artifact@v2
-        with:
-          name: bindings-linux-aarch64
-          path: .
-
-      - name: List
-        run: ls -a
-
-      - name: Run tests
-        uses: docker://multiarch/ubuntu-core:arm64-focal
-        with:
-          args: >
-            sh -c "
-              apt-get update && \
-              apt-get install -y ca-certificates gnupg2 curl && \
-              curl -sL https://deb.nodesource.com/setup_${{ matrix.node }}.x | bash - && \
-              apt-get install -y nodejs && \
-              node ./simple-test.js
-            "
 
   dependabot:
     needs:
