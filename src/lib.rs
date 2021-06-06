@@ -7,47 +7,15 @@ mod eraser;
 mod probe;
 mod flasher;
 
-use std::convert::TryInto;
-
-use napi::{CallContext, Env, JsNumber, JsObject, Result, Task};
-
-struct AsyncTask(u32);
-
-impl Task for AsyncTask {
-  type Output = u32;
-  type JsValue = JsNumber;
-
-  fn compute(&mut self) -> Result<Self::Output> {
-    use std::thread::sleep;
-    use std::time::Duration;
-    sleep(Duration::from_millis(self.0 as u64));
-    Ok(self.0 * 2)
-  }
-
-  fn resolve(self, env: Env, output: Self::Output) -> Result<Self::JsValue> {
-    env.create_uint32(output)
-  }
-}
+use eraser::stm32l0_eraser::erase_stm32l0_async;
+use flasher::generic_flasher::flash_firmware_file;
+use napi::{JsObject, Result};
+use probe::probe_binding::get_all_probes;
 
 #[module_exports]
 fn init(mut exports: JsObject) -> Result<()> {
-  exports.create_named_method("sync", sync_fn)?;
-
-  exports.create_named_method("sleep", sleep)?;
+  exports.create_named_method("eraseStm32L0", erase_stm32l0_async)?;
+  exports.create_named_method("flashFirmwareFile", flash_firmware_file)?;
+  exports.create_named_method("listAllProbes", get_all_probes)?;
   Ok(())
-}
-
-#[js_function(1)]
-fn sync_fn(ctx: CallContext) -> Result<JsNumber> {
-  let argument: u32 = ctx.get::<JsNumber>(0)?.try_into()?;
-
-  ctx.env.create_uint32(argument + 100)
-}
-
-#[js_function(1)]
-fn sleep(ctx: CallContext) -> Result<JsObject> {
-  let argument: u32 = ctx.get::<JsNumber>(0)?.try_into()?;
-  let task = AsyncTask(argument);
-  let async_task = ctx.env.spawn(task)?;
-  Ok(async_task.promise_object())
 }
