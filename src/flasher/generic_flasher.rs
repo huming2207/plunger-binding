@@ -102,12 +102,12 @@ pub fn flash_firmware_file(ctx: CallContext) -> napi::Result<JsObject> {
     let firmware_path = ctx.get::<JsString>(0)?.into_utf8()?.as_str()?.to_string();
     let target_name = ctx.get::<JsString>(1)?.into_utf8()?.as_str()?.to_string();
     let firmware_type = ctx.get::<JsString>(2)?.into_utf8()?.as_str()?.to_string();
-    let skip_erase = match ctx.try_get::<JsBoolean>(3)? {
+    let vid = ctx.get::<JsNumber>(3)?.get_int32()?;
+    let pid = ctx.get::<JsNumber>(4)?.get_int32()?;
+    let skip_erase = match ctx.try_get::<JsBoolean>(5)? {
         napi::Either::A(erase) => erase.get_value().unwrap_or(false),
         napi::Either::B(_) => false,
     };
-    let vid = ctx.get::<JsNumber>(4)?.get_int32()?;
-    let pid = ctx.get::<JsNumber>(5)?.get_int32()?;
     let speed_khz = match ctx.try_get::<JsNumber>(6)? {
         napi::Either::A(sn) => Some(sn.get_uint32().unwrap_or(1800)),
         napi::Either::B(_) => None,
