@@ -5,6 +5,7 @@ extern crate napi_derive;
 
 mod eraser;
 mod probe;
+mod flasher;
 
 use std::convert::TryInto;
 
