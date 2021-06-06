@@ -200,7 +200,7 @@ impl Task for Stm32L0EraserTask {
 }
 
 #[js_function(4)]
-fn erase_stm32l0_async(ctx: CallContext) -> napi::Result<JsObject> {
+pub fn erase_stm32l0_async(ctx: CallContext) -> napi::Result<JsObject> {
     let target_name = ctx.get::<JsString>(0)?.into_utf8()?.as_str()?.to_string();
     let vid = ctx.get::<JsNumber>(1)?.get_int32()?;
     let pid = ctx.get::<JsNumber>(2)?.get_int32()?;
