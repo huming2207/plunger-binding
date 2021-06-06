@@ -12,5 +12,10 @@
   ],
   "engines": {
     "node": ">= 10"
-  }
+  },
+  "publishConfig": {
+    "registry": "https://registry.npmjs.org/",
+    "access": "public"
+  },
+  "version": "1.0.0"
 }

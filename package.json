@@ -3,6 +3,7 @@
   "version": "1.0.0",
   "description": "Probe-rs flasher binding",
   "license": "GPL-3.0",
+  "author": "Jackson Ming Hu <huming2207@gmail.com>",
   "napi": {
     "name": "plunger-binding",
     "triples": {
@@ -19,6 +20,10 @@
   },
   "dependencies": {
     "@node-rs/helper": "^1.1.1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/huming2207/plunger-binding.git"
   },
   "devDependencies": {
     "@napi-rs/cli": "^1.0.4",
@@ -83,5 +88,13 @@
     "singleQuote": true,
     "arrowParens": "always",
     "parser": "typescript"
+  },
+  "optionalDependencies": {
+    "plunger-binding-darwin-arm64": "^1.0.0",
+    "plunger-binding-darwin-x64": "^1.0.0",
+    "plunger-binding-linux-arm-gnueabihf": "^1.0.0",
+    "plunger-binding-linux-arm64-gnu": "^1.0.0",
+    "plunger-binding-linux-x64-gnu": "^1.0.0",
+    "plunger-binding-win32-x64-msvc": "^1.0.0"
   }
 }
