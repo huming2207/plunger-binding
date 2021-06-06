@@ -1,6 +1,6 @@
 use std::{fs::File, u32};
 
-use napi::{CallContext, JsNumber, JsObject, JsString, Task};
+use napi::{CallContext, JsBoolean, JsNumber, JsObject, JsString, Task};
 use probe_rs::{DebugProbeSelector, Probe, flashing::{BinOptions, DownloadOptions, FileDownloadError, FlashLoader}};
 
 pub struct GenericFlasherTask {
@@ -11,6 +11,7 @@ pub struct GenericFlasherTask {
     probe_pid: u16,
     target_name: String,
     firmware_path: String,
+    skip_erase: bool,
 }
 
 impl Task for GenericFlasherTask {
@@ -70,8 +71,10 @@ impl Task for GenericFlasherTask {
         // cb.boost_clock(&mut session)?;
     
         let mut option = DownloadOptions::new();
-        option.keep_unwritten_bytes = true;
-        option.skip_erase = true;
+        if self.skip_erase {
+            option.keep_unwritten_bytes = true;
+            option.skip_erase = true;
+        }
     
         match loader
             // TODO: hand out chip erase flag
@@ -99,13 +102,17 @@ pub fn flash_firmware_file(ctx: CallContext) -> napi::Result<JsObject> {
     let firmware_path = ctx.get::<JsString>(0)?.into_utf8()?.as_str()?.to_string();
     let target_name = ctx.get::<JsString>(1)?.into_utf8()?.as_str()?.to_string();
     let firmware_type = ctx.get::<JsString>(2)?.into_utf8()?.as_str()?.to_string();
-    let vid = ctx.get::<JsNumber>(3)?.get_int32()?;
-    let pid = ctx.get::<JsNumber>(4)?.get_int32()?;
-    let speed_khz = match ctx.try_get::<JsNumber>(5)? {
+    let skip_erase = match ctx.try_get::<JsBoolean>(3)? {
+        napi::Either::A(erase) => erase.get_value().unwrap_or(false),
+        napi::Either::B(_) => false,
+    };
+    let vid = ctx.get::<JsNumber>(4)?.get_int32()?;
+    let pid = ctx.get::<JsNumber>(5)?.get_int32()?;
+    let speed_khz = match ctx.try_get::<JsNumber>(6)? {
         napi::Either::A(sn) => Some(sn.get_uint32().unwrap_or(1800)),
         napi::Either::B(_) => None,
     };
-    let serial_num = match ctx.try_get::<JsString>(5)? {
+    let serial_num = match ctx.try_get::<JsString>(7)? {
         napi::Either::A(sn) => Some(sn.into_utf8()?.as_str()?.to_string()),
         napi::Either::B(_) => None,
     };
@@ -114,6 +121,6 @@ pub fn flash_firmware_file(ctx: CallContext) -> napi::Result<JsObject> {
         return Err(napi::Error{ status: napi::Status::InvalidArg, reason: "Invalid VID/PID provided".to_string() });
     }
 
-    let task = GenericFlasherTask { probe_sn: serial_num.clone(), probe_vid: vid as u16, probe_pid: pid as u16, target_name: target_name.clone(), firmware_type, speed_khz, firmware_path };
+    let task = GenericFlasherTask { probe_sn: serial_num.clone(), probe_vid: vid as u16, probe_pid: pid as u16, target_name: target_name.clone(), firmware_type, speed_khz, firmware_path, skip_erase };
     ctx.env.spawn(task).map(|t| t.promise_object())
 }
