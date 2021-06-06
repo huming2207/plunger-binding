@@ -1,7 +1,9 @@
 [package]
 edition = "2018"
 name = "plunger-binding"
-version = "0.0.0"
+version = "0.0.1"
+authors = ["Jackson Ming Hu <huming2207@gmail.com>"]
+license = "GPL-3.0"
 
 [lib]
 crate-type = ["cdylib"]
