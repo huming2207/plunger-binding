@@ -19,6 +19,7 @@ anyhow = "1.0"
 clap = "3.0.0-beta.2"
 rusb = "0.8"
 radix_fmt = "1.0.0"
+crc = "2.0"
 
 [build-dependencies]
 napi-build = "1"
