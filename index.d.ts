@@ -10,6 +10,7 @@ export interface ProbeInfo {
     pid: number;
     serialNum?: string;
     probeType: ProbeType
+    shortId: number;
 }
 
 export interface Probes {
