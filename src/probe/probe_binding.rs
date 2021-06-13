@@ -1,6 +1,9 @@
+use crc::{CRC_32_CKSUM, Crc};
 use napi::{CallContext, JsUnknown, Result};
 use probe_rs::Probe;
 use serde::{Deserialize, Serialize};
+
+pub const CRC: Crc<u32> = Crc::<u32>::new(&CRC_32_CKSUM);
 
 #[derive(Serialize, Debug, Deserialize)]
 pub enum ProbeType {
@@ -16,7 +19,8 @@ pub struct ProbeInfo {
     vid: u16,
     pid: u16,
     serial_num: Option<String>,
-    probe_type: ProbeType
+    probe_type: ProbeType,
+    short_id: Option<u32>,
 }
 
 #[derive(Serialize, Debug, Deserialize)]
@@ -38,7 +42,14 @@ pub fn get_all_probes(ctx: CallContext) -> Result<JsUnknown> {
             probe_rs::DebugProbeType::JLink => ProbeType::JLink,
         };
 
-        let converted_probe = ProbeInfo { vid: probe.vendor_id, pid: probe.product_id, serial_num: probe.serial_number, probe_type };
+        let short_id = match &probe.serial_number {
+            Some(sn) => {
+                Some(CRC.checksum(sn.as_bytes()))
+            }
+            None => None,
+        };
+
+        let converted_probe = ProbeInfo { vid: probe.vendor_id, pid: probe.product_id, serial_num: probe.serial_number, probe_type, short_id };
 
         new_probes.push(converted_probe);
     }
