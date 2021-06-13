@@ -1,7 +1,7 @@
 export enum ProbeType {
-    CmsisDap = "CmsisDap",
-    StLink = "StLink",
-    Ftdi = "Ftdi",
+    DapLink = "DAPLink",
+    StLink = "STLink",
+    Ftdi = "FTDI",
     JLink = "JLink"
 }
 

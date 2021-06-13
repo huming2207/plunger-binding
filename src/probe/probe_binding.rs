@@ -7,9 +7,13 @@ pub const CRC: Crc<u32> = Crc::<u32>::new(&CRC_32_CKSUM);
 
 #[derive(Serialize, Debug, Deserialize)]
 pub enum ProbeType {
-    CmsisDap,
+    #[serde(rename = "DAPLink")]
+    DapLink,
+    #[serde(rename = "STLink")]
     StLink,
+    #[serde(rename = "FTDI")]
     Ftdi,
+    #[serde(rename = "JLink")]
     JLink
 }
 
@@ -36,7 +40,7 @@ pub fn get_all_probes(ctx: CallContext) -> Result<JsUnknown> {
 
     for probe in probes {
         let probe_type = match probe.probe_type {
-            probe_rs::DebugProbeType::CmsisDap => ProbeType::CmsisDap,
+            probe_rs::DebugProbeType::CmsisDap => ProbeType::DapLink,
             probe_rs::DebugProbeType::Ftdi => ProbeType::Ftdi,
             probe_rs::DebugProbeType::StLink => ProbeType::StLink,
             probe_rs::DebugProbeType::JLink => ProbeType::JLink,
