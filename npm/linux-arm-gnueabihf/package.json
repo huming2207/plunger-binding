@@ -1,0 +1,17 @@
+{
+  "name": "plunger-binding-linux-arm-gnueabihf",
+  "os": [
+    "linux"
+  ],
+  "cpu": [
+    "arm"
+  ],
+  "main": "plunger-binding.linux-arm-gnueabihf.node",
+  "files": [
+    "plunger-binding.linux-arm-gnueabihf.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  },
+  "version": "1.0.0"
+}

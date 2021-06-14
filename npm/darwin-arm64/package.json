@@ -1,0 +1,17 @@
+{
+  "name": "plunger-binding-darwin-arm64",
+  "os": [
+    "darwin"
+  ],
+  "cpu": [
+    "arm64"
+  ],
+  "main": "plunger-binding.darwin-arm64.node",
+  "files": [
+    "plunger-binding.darwin-arm64.node"
+  ],
+  "engines": {
+    "node": ">= 10"
+  },
+  "version": "1.0.0"
+}
