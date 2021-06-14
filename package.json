@@ -1,18 +1,11 @@
 {
   "name": "plunger-binding",
-  "version": "1.0.5",
+  "version": "1.0.6",
   "description": "Probe-rs flasher binding",
   "license": "GPL-3.0",
   "author": "Jackson Ming Hu <huming2207@gmail.com>",
   "napi": {
-    "name": "plunger-binding",
-    "triples": {
-      "additional": [
-        "aarch64-apple-darwin",
-        "aarch64-unknown-linux-gnu",
-        "armv7-unknown-linux-gnueabihf"
-      ]
-    }
+    "name": "plunger-binding"
   },
   "publishConfig": {
     "registry": "https://registry.npmjs.org/",
