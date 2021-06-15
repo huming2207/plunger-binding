@@ -1,6 +1,6 @@
-use super::eraser_error::EraserError;
+use crate::common::plunger_error::PlungerError;
 
 pub trait BaseEraser {
-    fn mass_erase(&mut self) -> Result<(), EraserError>;
-    fn unlock_flash(&mut self) -> Result<(), EraserError>;
+    fn mass_erase(&mut self) -> Result<(), PlungerError>;
+    fn unlock_flash(&mut self) -> Result<(), PlungerError>;
 }

@@ -6,6 +6,8 @@ extern crate napi_derive;
 mod eraser;
 mod probe;
 mod flasher;
+mod common;
+mod identifier;
 
 use eraser::stm32l0_eraser::erase_stm32l0_async;
 use flasher::generic_flasher::flash_firmware_file;

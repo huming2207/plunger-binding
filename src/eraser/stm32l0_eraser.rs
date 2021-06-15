@@ -2,7 +2,9 @@ use std::{thread, time::Duration};
 
 use probe_rs::{Core, DebugProbeSelector, MemoryInterface, Probe};
 
-use super::{base_eraser::BaseEraser, eraser_error::EraserError};
+use crate::common::plunger_error::PlungerError;
+
+use super::{base_eraser::BaseEraser};
 
 use napi::{CallContext, JsNumber, JsObject, JsString, Task};
 
@@ -20,15 +22,15 @@ pub struct STM32L0Eraser {
 }
 
 impl STM32L0Eraser {
-    pub fn new(target_name: String, probe: DebugProbeSelector) -> Result<STM32L0Eraser, EraserError> {
+    pub fn new(target_name: String, probe: DebugProbeSelector) -> Result<STM32L0Eraser, PlungerError> {
         if !target_name.contains("STM32L0") && !target_name.contains("stm32l0") {
-            return Err(EraserError::InvalidTarget);
+            return Err(PlungerError::InvalidTarget);
         }
 
         Ok(STM32L0Eraser { target_name, probe: probe.clone() })
     }
 
-    fn wait_for_flash(core: &mut Core) -> Result<(), EraserError> {
+    fn wait_for_flash(core: &mut Core) -> Result<(), PlungerError> {
         let mut result: u32 = 1;
         while result != 0 {
             result = core.read_word_32(FLASH_SR)? & 0b1;
@@ -37,7 +39,7 @@ impl STM32L0Eraser {
         Ok(())
     }
 
-    fn set_rdp_0_to_1(&self) -> Result<(), EraserError> {
+    fn set_rdp_0_to_1(&self) -> Result<(), PlungerError> {
         // Prepare the probe
         let mut probe = Probe::open(self.probe.clone())?;
         
@@ -65,7 +67,7 @@ impl STM32L0Eraser {
         Ok(())
     }
 
-    fn get_option_byte(&self) -> Result<u32, EraserError> {
+    fn get_option_byte(&self) -> Result<u32, PlungerError> {
         // Prepare the probe
         let mut probe = Probe::open(self.probe.clone())?;
         probe.detach()?;
@@ -79,7 +81,7 @@ impl STM32L0Eraser {
 }
 
 impl BaseEraser for STM32L0Eraser {
-    fn mass_erase(&mut self) -> Result<(), EraserError> {
+    fn mass_erase(&mut self) -> Result<(), PlungerError> {
 
         // Firstly, unlock the flash
         self.unlock_flash()?;
@@ -89,7 +91,7 @@ impl BaseEraser for STM32L0Eraser {
 
         // RDP = 0xCC => RDP level 2, fully protected
         if opt_val & 0xff == 0xCC {
-            return Err(EraserError::InvalidProtectionLevel);
+            return Err(PlungerError::InvalidProtectionLevel);
         } 
 
         // RDP = 0xAA => RDP level 0, default
@@ -128,7 +130,7 @@ impl BaseEraser for STM32L0Eraser {
         Ok(())
     }
 
-    fn unlock_flash(&mut self) -> Result<(), EraserError> {
+    fn unlock_flash(&mut self) -> Result<(), PlungerError> {
         let probe = Probe::open(self.probe.clone())?;
 
         let mut session = probe.attach_under_reset(self.target_name.clone())?;
@@ -171,20 +173,20 @@ impl Task for Stm32L0EraserTask {
         let mut eraser = match STM32L0Eraser::new(self.target_name.clone(), DebugProbeSelector{ serial_number: self.probe_sn.clone(), vendor_id: self.probe_vid, product_id: self.probe_pid }) {
             Ok(eraser) => eraser,
             Err(err) => return Err(match err {
-                EraserError::InvalidTarget => napi::Error{ reason: "Invalid target".to_string(), status: napi::Status::InvalidArg },
-                EraserError::InvalidProtectionLevel => napi::Error{ reason: "Invalid RDP level".to_string(), status: napi::Status::PendingException },
-                EraserError::SessionError(_) => napi::Error{ reason: "Invalid session".to_string(), status: napi::Status::PendingException },
-                EraserError::DebugProbeError(_) => napi::Error{ reason: "Something wrong with debug probe".to_string(), status: napi::Status::PendingException },
+                PlungerError::InvalidTarget => napi::Error{ reason: "Invalid target".to_string(), status: napi::Status::InvalidArg },
+                PlungerError::InvalidProtectionLevel => napi::Error{ reason: "Invalid RDP level".to_string(), status: napi::Status::PendingException },
+                PlungerError::SessionError(_) => napi::Error{ reason: "Invalid session".to_string(), status: napi::Status::PendingException },
+                PlungerError::DebugProbeError(_) => napi::Error{ reason: "Something wrong with debug probe".to_string(), status: napi::Status::PendingException },
             }),
         };
 
         return match eraser.mass_erase() {
             Ok(_) => Ok(()),
             Err(err) => Err(match err {
-                EraserError::InvalidTarget => napi::Error{ reason: "Invalid target".to_string(), status: napi::Status::InvalidArg },
-                EraserError::InvalidProtectionLevel => napi::Error{ reason: "Invalid RDP level".to_string(), status: napi::Status::PendingException },
-                EraserError::SessionError(_) => napi::Error{ reason: "Invalid session".to_string(), status: napi::Status::PendingException },
-                EraserError::DebugProbeError(_) => napi::Error{ reason: "Something wrong with debug probe".to_string(), status: napi::Status::PendingException },
+                PlungerError::InvalidTarget => napi::Error{ reason: "Invalid target".to_string(), status: napi::Status::InvalidArg },
+                PlungerError::InvalidProtectionLevel => napi::Error{ reason: "Invalid RDP level".to_string(), status: napi::Status::PendingException },
+                PlungerError::SessionError(_) => napi::Error{ reason: "Invalid session".to_string(), status: napi::Status::PendingException },
+                PlungerError::DebugProbeError(_) => napi::Error{ reason: "Something wrong with debug probe".to_string(), status: napi::Status::PendingException },
             }),
         };
     }

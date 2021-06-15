@@ -3,29 +3,9 @@ use napi::{CallContext, JsUnknown, Result};
 use probe_rs::Probe;
 use serde::{Deserialize, Serialize};
 
+use crate::common::probe_info::{ProbeInfo, ProbeType};
+
 pub const CRC: Crc<u32> = Crc::<u32>::new(&CRC_32_CKSUM);
-
-#[derive(Serialize, Debug, Deserialize)]
-pub enum ProbeType {
-    #[serde(rename = "DAPLink")]
-    DapLink,
-    #[serde(rename = "STLink")]
-    StLink,
-    #[serde(rename = "FTDI")]
-    Ftdi,
-    #[serde(rename = "JLink")]
-    JLink
-}
-
-#[derive(Serialize, Debug, Deserialize)]
-#[serde(rename_all = "camelCase")]
-pub struct ProbeInfo {
-    vid: u16,
-    pid: u16,
-    serial_num: Option<String>,
-    probe_type: ProbeType,
-    short_id: Option<u32>,
-}
 
 #[derive(Serialize, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -53,7 +33,7 @@ pub fn get_all_probes(ctx: CallContext) -> Result<JsUnknown> {
             None => None,
         };
 
-        let converted_probe = ProbeInfo { vid: probe.vendor_id, pid: probe.product_id, serial_num: probe.serial_number, probe_type, short_id };
+        let converted_probe = ProbeInfo { vid: probe.vendor_id, pid: probe.product_id, serial_num: probe.serial_number, probe_type: Some(probe_type), short_id };
 
         new_probes.push(converted_probe);
     }
