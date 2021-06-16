@@ -9,6 +9,7 @@ use super::base_identifier::BaseIdentifier;
 const STM32L0_UID_LSB: u32 = 0x1ff80050;
 const STM32L0_UID_MID: u32 = 0x1ff80054;
 const STM32L0_UID_MSB: u32 = 0x1ff80058;
+const STM32L0_FL_SIZE: u32 = 0x1ff8007c;
 
 pub struct STM32L0Identifier {
     probe: DebugProbeSelector,
@@ -47,6 +48,21 @@ impl BaseIdentifier for STM32L0Identifier {
     }
 
     fn get_flash_size(self) -> Result<usize, PlungerError> {
-        todo!()
+        let mut probe = Probe::open(self.probe.clone())?;
+        
+        probe.detach()?;
+
+        let mut session = probe.attach(self.target_name.clone())?;
+        let mut core = session.core(0)?;
+        
+        if !core.core_halted()? {
+            core.halt(Duration::from_secs(1))?;
+        }
+
+        let mut flash_size_kb = vec![0 as u8, 0];
+        core.read_8(STM32L0_FL_SIZE, &mut flash_size_kb)?;
+
+        let flash_size = (((flash_size_kb[0] as usize) << 8) | (flash_size_kb[1] as usize)) * 1024;
+        Ok(flash_size.into())
     }
 }
