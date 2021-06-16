@@ -1,6 +1,4 @@
 use std::time::Duration;
-
-use napi::{CallContext, JsNumber, JsObject, JsString, JsUnknown};
 use probe_rs::{DebugProbeSelector, MemoryInterface, Probe};
 
 use crate::common::{plunger_error::PlungerError, probe_info::ProbeInfo};
@@ -20,7 +18,7 @@ pub struct STM32L0Identifier {
 impl STM32L0Identifier {
     pub fn new(probe: &ProbeInfo, target_name: String) -> Result<STM32L0Identifier, PlungerError> {
         if !target_name.contains("STM32L0") && !target_name.contains("stm32l0") {
-            return Err(PlungerError::InvalidTarget);
+            return Err(PlungerError::InvalidTarget(format!("Target {} is not STM32L0!", target_name)));
         } else {
             Ok(STM32L0Identifier{ probe: probe.into(), target_name })
         }
@@ -76,47 +74,9 @@ impl BaseIdentifier for STM32L0Identifier {
     }
 }
 
-struct STM32L0IdentifierTask {
-    probe_sn: Option<String>,
-    probe_vid: u16,
-    probe_pid: u16,
-    target_name: String,
-}
-
-impl napi::Task for  STM32L0IdentifierTask {
-    type Output = TargetIdentity;
-    type JsValue = JsUnknown;
-
-    fn compute(&mut self) -> napi::Result<Self::Output> {
-        let identifier = STM32L0Identifier::new(&ProbeInfo{ serial_num: self.probe_sn.clone(), vid: self.probe_vid, pid: self.probe_pid, probe_type: None, short_id: None }, self.target_name.clone())?;
-        let unique_id = Some(identifier.get_uid()?);
-        let flash_size = Some(identifier.get_flash_size()?);
-        Ok(TargetIdentity{ unique_id, flash_size })
-    }
-
-    fn resolve(self, env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
-        env.to_js_value(&output)
-    }
-
-    fn reject(self, _env: napi::Env, err: napi::Error) -> napi::Result<Self::JsValue> {
-        Err(err)
-    }
-}
-
-#[js_function(4)]
-pub fn identify_stm32l0_async(ctx: CallContext) -> napi::Result<JsObject> {
-    let target_name = ctx.get::<JsString>(0)?.into_utf8()?.as_str()?.to_string();
-    let vid = ctx.get::<JsNumber>(1)?.get_int32()?;
-    let pid = ctx.get::<JsNumber>(2)?.get_int32()?;
-    let serial_num = match ctx.try_get::<JsString>(3)? {
-        napi::Either::A(sn) => Some(sn.into_utf8()?.as_str()?.to_string()),
-        napi::Either::B(_) => None,
-    };
-
-    if vid > u16::MAX as i32 || pid > u16::MAX as i32 {
-        return Err(napi::Error{ status: napi::Status::InvalidArg, reason: "Invalid VID/PID provided".to_string() });
-    }
-
-    let task = STM32L0IdentifierTask { probe_sn: serial_num.clone(), probe_vid: vid as u16, probe_pid: pid as u16, target_name: target_name.clone() };
-    ctx.env.spawn(task).map(|t| t.promise_object())
+pub(crate) fn identify_stm32l0(target_name: String, vid: u16, pid: u16, sn: Option<String>) -> napi::Result<TargetIdentity> {
+    let identifier = STM32L0Identifier::new(&ProbeInfo{ serial_num: sn.clone(), vid, pid, probe_type: None, short_id: None }, target_name.clone())?;
+    let unique_id = Some(identifier.get_uid()?);
+    let flash_size = Some(identifier.get_flash_size()?);
+    Ok(TargetIdentity{ unique_id, flash_size })
 }

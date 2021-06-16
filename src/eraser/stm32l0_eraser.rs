@@ -24,7 +24,7 @@ pub struct STM32L0Eraser {
 impl STM32L0Eraser {
     pub fn new(target_name: String, probe: DebugProbeSelector) -> Result<STM32L0Eraser, PlungerError> {
         if !target_name.contains("STM32L0") && !target_name.contains("stm32l0") {
-            return Err(PlungerError::InvalidTarget);
+            return Err(PlungerError::InvalidTarget(format!("Target {} is not STM32L0!", target_name)));
         }
 
         Ok(STM32L0Eraser { target_name, probe: probe.clone() })
@@ -131,7 +131,7 @@ impl BaseEraser for STM32L0Eraser {
     }
 
     fn unlock_flash(&mut self) -> Result<(), PlungerError> {
-        let probe = Probe::open(self.probe.clone())?;
+        let probe = Probe::open(    self.probe.clone())?;
 
         let mut session = probe.attach_under_reset(self.target_name.clone())?;
         let mut core = session.core(0)?;
