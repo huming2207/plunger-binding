@@ -1,6 +1,6 @@
 use std::{fs::File, u32};
 
-use napi::{CallContext, JsBoolean, JsNumber, JsObject, JsString, Task};
+use napi::{CallContext, JsBoolean, JsNumber, JsObject, JsString, JsUndefined, Task};
 use probe_rs::{DebugProbeSelector, Probe, flashing::{BinOptions, DownloadOptions, FileDownloadError, FlashLoader}};
 
 pub struct GenericFlasherTask {
@@ -16,7 +16,7 @@ pub struct GenericFlasherTask {
 
 impl Task for GenericFlasherTask {
     type Output = ();
-    type JsValue = JsNumber;
+    type JsValue = JsUndefined;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
         let mut probe = match Probe::open(DebugProbeSelector{ product_id: self.probe_pid, vendor_id: self.probe_vid, serial_number: self.probe_sn.clone() }) {
@@ -91,7 +91,7 @@ impl Task for GenericFlasherTask {
 
     fn resolve(self, env: napi::Env, _output: Self::Output) -> napi::Result<Self::JsValue> {
         // Does nothing?
-        env.create_uint32(0)
+        env.get_undefined()
     }
 
     fn reject(self, _env: napi::Env, err: napi::Error) -> napi::Result<Self::JsValue> {
