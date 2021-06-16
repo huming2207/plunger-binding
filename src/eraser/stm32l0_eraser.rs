@@ -6,7 +6,7 @@ use crate::common::plunger_error::PlungerError;
 
 use super::{base_eraser::BaseEraser};
 
-use napi::{CallContext, JsNumber, JsObject, JsString, Task};
+use napi::{CallContext, JsNumber, JsObject, JsString, JsUndefined, Task};
 
 const FLASH_PECR: u32 = 0x40022004;
 const FLASH_PKEYR: u32 = 0x4002200C;
@@ -167,7 +167,7 @@ pub struct Stm32L0EraserTask {
 
 impl Task for Stm32L0EraserTask {
     type Output = ();
-    type JsValue = JsNumber;
+    type JsValue = JsUndefined;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
         let mut eraser = STM32L0Eraser::new(self.target_name.clone(), DebugProbeSelector{ serial_number: self.probe_sn.clone(), vendor_id: self.probe_vid, product_id: self.probe_pid })?;
@@ -176,7 +176,7 @@ impl Task for Stm32L0EraserTask {
 
     fn resolve(self, env: napi::Env, _output: Self::Output) -> napi::Result<Self::JsValue> {
         // Does nothing?
-        env.create_uint32(0)
+        env.get_undefined()
     }
 
     fn reject(self, _env: napi::Env, err: napi::Error) -> napi::Result<Self::JsValue> {
