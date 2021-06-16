@@ -1,3 +1,4 @@
+use probe_rs::DebugProbeSelector;
 use serde::{Deserialize, Serialize};
 
 #[derive(Serialize, Debug, Deserialize, Clone)]
@@ -8,6 +9,18 @@ pub struct ProbeInfo {
     pub serial_num: Option<String>,
     pub probe_type: Option<ProbeType>,
     pub short_id: Option<u32>,
+}
+
+impl From<ProbeInfo> for DebugProbeSelector {
+    fn from(probe: ProbeInfo) -> Self {
+        DebugProbeSelector { vendor_id: probe.vid, product_id: probe.pid, serial_number: probe.serial_num.clone()  }
+    }
+}
+
+impl From<&ProbeInfo> for DebugProbeSelector {
+    fn from(probe: &ProbeInfo) -> Self {
+        DebugProbeSelector { vendor_id: probe.vid, product_id: probe.pid, serial_number: probe.serial_num.clone()  }
+    }
 }
 
 #[derive(Serialize, Debug, Deserialize, Clone)]

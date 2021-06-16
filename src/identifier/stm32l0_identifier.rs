@@ -21,7 +21,7 @@ impl STM32L0Identifier {
         if !target_name.contains("STM32L0") && !target_name.contains("stm32l0") {
             return Err(PlungerError::InvalidTarget);
         } else {
-            Ok(STM32L0Identifier{ probe: DebugProbeSelector{ product_id: probe.pid, vendor_id: probe.vid, serial_number: probe.serial_num.clone() }, target_name })
+            Ok(STM32L0Identifier{ probe: probe.into(), target_name })
         }
     }
 }
