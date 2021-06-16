@@ -170,25 +170,8 @@ impl Task for Stm32L0EraserTask {
     type JsValue = JsNumber;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
-        let mut eraser = match STM32L0Eraser::new(self.target_name.clone(), DebugProbeSelector{ serial_number: self.probe_sn.clone(), vendor_id: self.probe_vid, product_id: self.probe_pid }) {
-            Ok(eraser) => eraser,
-            Err(err) => return Err(match err {
-                PlungerError::InvalidTarget => napi::Error{ reason: "Invalid target".to_string(), status: napi::Status::InvalidArg },
-                PlungerError::InvalidProtectionLevel => napi::Error{ reason: "Invalid RDP level".to_string(), status: napi::Status::PendingException },
-                PlungerError::SessionError(_) => napi::Error{ reason: "Invalid session".to_string(), status: napi::Status::PendingException },
-                PlungerError::DebugProbeError(_) => napi::Error{ reason: "Something wrong with debug probe".to_string(), status: napi::Status::PendingException },
-            }),
-        };
-
-        return match eraser.mass_erase() {
-            Ok(_) => Ok(()),
-            Err(err) => Err(match err {
-                PlungerError::InvalidTarget => napi::Error{ reason: "Invalid target".to_string(), status: napi::Status::InvalidArg },
-                PlungerError::InvalidProtectionLevel => napi::Error{ reason: "Invalid RDP level".to_string(), status: napi::Status::PendingException },
-                PlungerError::SessionError(_) => napi::Error{ reason: "Invalid session".to_string(), status: napi::Status::PendingException },
-                PlungerError::DebugProbeError(_) => napi::Error{ reason: "Something wrong with debug probe".to_string(), status: napi::Status::PendingException },
-            }),
-        };
+        let mut eraser = STM32L0Eraser::new(self.target_name.clone(), DebugProbeSelector{ serial_number: self.probe_sn.clone(), vendor_id: self.probe_vid, product_id: self.probe_pid })?;
+        Ok(eraser.mass_erase()?)
     }
 
     fn resolve(self, env: napi::Env, _output: Self::Output) -> napi::Result<Self::JsValue> {
