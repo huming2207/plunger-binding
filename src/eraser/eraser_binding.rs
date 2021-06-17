@@ -1,36 +1,35 @@
 use std::{collections::HashMap, sync::Mutex};
 
+use napi::{CallContext, JsNumber, JsObject, JsString, JsUndefined, Task};
+
 use lazy_static::lazy_static;
-use napi::{CallContext, JsNumber, JsObject, JsString, JsUnknown};
 
-use crate::identifier::stm32l0_identifier::identify_stm32l0;
+use crate::eraser::stm32l0_eraser::erase_stm32l0;
 
-use super::base_identifier::TargetIdentity;
-
-type IdentifierFn = fn(String, u16, u16, Option<String>) -> napi::Result<TargetIdentity>;
-type IdentifierKV = HashMap<String, IdentifierFn>;
+type EraserFn = fn(String, u16, u16, Option<String>) -> napi::Result<()>;
+type EraserMap = HashMap<String, EraserFn>;
 
 lazy_static! {
-    static ref IDENTIFIER_MAP: Mutex<IdentifierKV> = {
-        let mut map: IdentifierKV = HashMap::new();
-        map.insert("STM32L0".to_string(), identify_stm32l0);
+    static ref ERASER_MAP: Mutex<EraserMap> = {
+        let mut map: EraserMap = HashMap::new();
+        map.insert("STM32L0".to_string(), erase_stm32l0);
         Mutex::new(map)
     };
 }
 
-struct IdentifierTask {
+pub struct EraserTask {
     probe_sn: Option<String>,
     probe_vid: u16,
     probe_pid: u16,
     target_name: String,
 }
 
-impl napi::Task for IdentifierTask {
-    type Output = TargetIdentity;
-    type JsValue = JsUnknown;
+impl Task for EraserTask {
+    type Output = ();
+    type JsValue = JsUndefined;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
-        let result = match IDENTIFIER_MAP.lock() {
+        let result = match ERASER_MAP.lock() {
             Ok(ret) => ret,
             Err(err) => {
                 return Err(napi::Error {
@@ -53,12 +52,13 @@ impl napi::Task for IdentifierTask {
 
         Err(napi::Error {
             status: napi::Status::Unknown,
-            reason: format!("Unsupported target for identify {}", self.target_name),
+            reason: format!("Unsupported target for erase {}", self.target_name),
         })
     }
 
-    fn resolve(self, env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
-        env.to_js_value(&output)
+    fn resolve(self, env: napi::Env, _output: Self::Output) -> napi::Result<Self::JsValue> {
+        // Does nothing?
+        env.get_undefined()
     }
 
     fn reject(self, _env: napi::Env, err: napi::Error) -> napi::Result<Self::JsValue> {
@@ -67,7 +67,7 @@ impl napi::Task for IdentifierTask {
 }
 
 #[js_function(4)]
-pub fn identify_target(ctx: CallContext) -> napi::Result<JsObject> {
+pub fn erase_target(ctx: CallContext) -> napi::Result<JsObject> {
     let target_name = ctx.get::<JsString>(0)?.into_utf8()?.as_str()?.to_string();
     let vid = ctx.get::<JsNumber>(1)?.get_int32()?;
     let pid = ctx.get::<JsNumber>(2)?.get_int32()?;
@@ -79,11 +79,11 @@ pub fn identify_target(ctx: CallContext) -> napi::Result<JsObject> {
     if vid > u16::MAX as i32 || pid > u16::MAX as i32 {
         return Err(napi::Error {
             status: napi::Status::InvalidArg,
-            reason: "Invalid VID/PID provided".to_string(),
+            reason: "Invalid probe VID/PID provided".to_string(),
         });
     }
 
-    let task = IdentifierTask {
+    let task = EraserTask {
         probe_sn: serial_num.clone(),
         probe_vid: vid as u16,
         probe_pid: pid as u16,

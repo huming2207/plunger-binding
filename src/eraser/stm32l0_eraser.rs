@@ -6,8 +6,6 @@ use crate::common::plunger_error::PlungerError;
 
 use super::base_eraser::BaseEraser;
 
-use napi::{CallContext, JsNumber, JsObject, JsString, JsUndefined, Task};
-
 const FLASH_PECR: u32 = 0x40022004;
 const FLASH_PKEYR: u32 = 0x4002200C;
 const FLASH_PRGKEYR: u32 = 0x40022010;
@@ -163,61 +161,19 @@ impl BaseEraser for STM32L0Eraser {
     }
 }
 
-pub struct Stm32L0EraserTask {
-    probe_sn: Option<String>,
-    probe_vid: u16,
-    probe_pid: u16,
+pub fn erase_stm32l0(
     target_name: String,
-}
-
-impl Task for Stm32L0EraserTask {
-    type Output = ();
-    type JsValue = JsUndefined;
-
-    fn compute(&mut self) -> napi::Result<Self::Output> {
-        let mut eraser = STM32L0Eraser::new(
-            self.target_name.clone(),
-            DebugProbeSelector {
-                serial_number: self.probe_sn.clone(),
-                vendor_id: self.probe_vid,
-                product_id: self.probe_pid,
-            },
-        )?;
-        Ok(eraser.mass_erase()?)
-    }
-
-    fn resolve(self, env: napi::Env, _output: Self::Output) -> napi::Result<Self::JsValue> {
-        // Does nothing?
-        env.get_undefined()
-    }
-
-    fn reject(self, _env: napi::Env, err: napi::Error) -> napi::Result<Self::JsValue> {
-        Err(err)
-    }
-}
-
-#[js_function(4)]
-pub fn erase_stm32l0_async(ctx: CallContext) -> napi::Result<JsObject> {
-    let target_name = ctx.get::<JsString>(0)?.into_utf8()?.as_str()?.to_string();
-    let vid = ctx.get::<JsNumber>(1)?.get_int32()?;
-    let pid = ctx.get::<JsNumber>(2)?.get_int32()?;
-    let serial_num = match ctx.try_get::<JsString>(3)? {
-        napi::Either::A(sn) => Some(sn.into_utf8()?.as_str()?.to_string()),
-        napi::Either::B(_) => None,
-    };
-
-    if vid > u16::MAX as i32 || pid > u16::MAX as i32 {
-        return Err(napi::Error {
-            status: napi::Status::InvalidArg,
-            reason: "Invalid VID/PID provided".to_string(),
-        });
-    }
-
-    let task = Stm32L0EraserTask {
-        probe_sn: serial_num.clone(),
-        probe_vid: vid as u16,
-        probe_pid: pid as u16,
-        target_name: target_name.clone(),
-    };
-    ctx.env.spawn(task).map(|t| t.promise_object())
+    vid: u16,
+    pid: u16,
+    sn: Option<String>,
+) -> Result<(), napi::Error> {
+    let mut eraser = STM32L0Eraser::new(
+        target_name.clone(),
+        DebugProbeSelector {
+            serial_number: sn.clone(),
+            vendor_id: vid,
+            product_id: pid,
+        },
+    )?;
+    Ok(eraser.mass_erase()?)
 }
