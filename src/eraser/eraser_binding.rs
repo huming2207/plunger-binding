@@ -4,7 +4,7 @@ use napi::{CallContext, JsNumber, JsObject, JsString, JsUndefined, Task};
 
 use lazy_static::lazy_static;
 
-use crate::eraser::stm32l0_eraser::erase_stm32l0;
+use crate::eraser::{generic_eraser::erase_generic, stm32l0_eraser::erase_stm32l0};
 
 type EraserFn = fn(String, u16, u16, Option<String>) -> napi::Result<()>;
 type EraserMap = HashMap<String, EraserFn>;
@@ -39,6 +39,7 @@ impl Task for EraserTask {
             }
         };
 
+        // Search for optimised algorithm first
         for (key, val) in result.iter() {
             if self.target_name.contains(key) {
                 return Ok(val(
@@ -50,10 +51,12 @@ impl Task for EraserTask {
             }
         }
 
-        Err(napi::Error {
-            status: napi::Status::Unknown,
-            reason: format!("Unsupported target for erase {}", self.target_name),
-        })
+        // If no optimised target algorithm found, then use probe-rs's generic method
+        Ok(erase_generic(
+            self.probe_vid,
+            self.probe_pid,
+            self.probe_sn.clone(),
+        )?)
     }
 
     fn resolve(self, env: napi::Env, _output: Self::Output) -> napi::Result<Self::JsValue> {

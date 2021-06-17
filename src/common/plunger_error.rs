@@ -9,6 +9,8 @@ pub enum PlungerError {
     #[error(transparent)]
     ProbeRsSessionError(#[from] probe_rs::Error),
     #[error(transparent)]
+    ProbeFlashingError(#[from] probe_rs::flashing::FlashError),
+    #[error(transparent)]
     ProbeRsCommError(#[from] probe_rs::DebugProbeError),
     #[error("Invalid state: {0}")]
     StateError(String),
@@ -23,6 +25,7 @@ impl From<PlungerError> for napi::Error {
                 PlungerError::ProbeRsSessionError(_) => napi::Status::GenericFailure,
                 PlungerError::ProbeRsCommError(_) => napi::Status::GenericFailure,
                 PlungerError::StateError(_) => napi::Status::Unknown,
+                PlungerError::ProbeFlashingError(_) => napi::Status::GenericFailure,
             },
             reason: err.to_string(),
         }
