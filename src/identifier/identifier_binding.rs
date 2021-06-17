@@ -13,7 +13,7 @@ type IdentifierKV = HashMap<String, IdentifierFn>;
 lazy_static! {
     static ref IDENTIFIER_MAP: Mutex<IdentifierKV> = {
         let mut map: IdentifierKV = HashMap::new();
-        map.insert("STM32F0".to_string(), identify_stm32l0);
+        map.insert("STM32L0".to_string(), identify_stm32l0);
         Mutex::new(map)
     };
 }

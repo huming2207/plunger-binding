@@ -38,9 +38,9 @@ impl BaseIdentifier for STM32L0Identifier {
             core.halt(Duration::from_secs(1))?;
         }
 
-        let mut uid_lsb: Vec<u8> = vec![0u8; 32];
-        let mut uid_mid: Vec<u8> = vec![0u8; 32];
-        let mut uid_msb: Vec<u8> = vec![0u8; 32];
+        let mut uid_lsb: Vec<u8> = vec![0u8; 4];
+        let mut uid_mid: Vec<u8> = vec![0u8; 4];
+        let mut uid_msb: Vec<u8> = vec![0u8; 4];
 
         core.read_8(STM32L0_UID_LSB, &mut uid_lsb)?;
         core.read_8(STM32L0_UID_MID, &mut uid_mid)?;
@@ -66,10 +66,10 @@ impl BaseIdentifier for STM32L0Identifier {
             core.halt(Duration::from_secs(1))?;
         }
 
-        let mut flash_size_kb = vec![0 as u8, 0];
+        let mut flash_size_kb = vec![0u8; 2];
         core.read_8(STM32L0_FL_SIZE, &mut flash_size_kb)?;
 
-        let flash_size = (((flash_size_kb[0] as usize) << 8) | (flash_size_kb[1] as usize)) * 1024;
+        let flash_size = (((flash_size_kb[1] as usize) << 8) | (flash_size_kb[0] as usize)) * 1024;
         Ok(flash_size.into())
     }
 }
