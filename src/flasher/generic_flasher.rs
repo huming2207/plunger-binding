@@ -1,7 +1,10 @@
 use std::{fs::File, u32};
 
 use napi::{CallContext, JsBoolean, JsNumber, JsObject, JsString, JsUndefined, Task};
-use probe_rs::{DebugProbeSelector, Probe, flashing::{BinOptions, DownloadOptions, FileDownloadError, FlashLoader}};
+use probe_rs::{
+    flashing::{BinOptions, DownloadOptions, FileDownloadError, FlashLoader},
+    DebugProbeSelector, Probe,
+};
 
 pub struct GenericFlasherTask {
     probe_sn: Option<String>,
@@ -19,73 +22,114 @@ impl Task for GenericFlasherTask {
     type JsValue = JsUndefined;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
-        let mut probe = match Probe::open(DebugProbeSelector{ product_id: self.probe_pid, vendor_id: self.probe_vid, serial_number: self.probe_sn.clone() }) {
+        let mut probe = match Probe::open(DebugProbeSelector {
+            product_id: self.probe_pid,
+            vendor_id: self.probe_vid,
+            serial_number: self.probe_sn.clone(),
+        }) {
             Ok(p) => p,
-            Err(err) => return Err(napi::Error{ reason: format!("Failed to open probe: {}", err), status: napi::Status::Unknown  })
+            Err(err) => {
+                return Err(napi::Error {
+                    reason: format!("Failed to open probe: {}", err),
+                    status: napi::Status::Unknown,
+                })
+            }
         };
-        
+
         match probe.detach() {
             Ok(_) => (),
-            Err(err) => return Err(napi::Error{ reason: format!("Failed to detach probe: {}", err), status: napi::Status::Unknown  })
+            Err(err) => {
+                return Err(napi::Error {
+                    reason: format!("Failed to detach probe: {}", err),
+                    status: napi::Status::Unknown,
+                })
+            }
         };
 
         match probe.set_speed(self.speed_khz.unwrap_or(1800)) {
             Ok(_) => (),
-            Err(err) => return Err(napi::Error{ reason: format!("Failed to set speed: {}", err), status: napi::Status::Unknown  })
+            Err(err) => {
+                return Err(napi::Error {
+                    reason: format!("Failed to set speed: {}", err),
+                    status: napi::Status::Unknown,
+                })
+            }
         }
-    
+
         let mut session = match probe.attach_under_reset(self.target_name.clone()) {
             Ok(s) => s,
-            Err(err) => return Err(napi::Error{ reason: format!("Failed to open session: {}", err), status: napi::Status::Unknown  })
+            Err(err) => {
+                return Err(napi::Error {
+                    reason: format!("Failed to open session: {}", err),
+                    status: napi::Status::Unknown,
+                })
+            }
         };
 
         let mut file = match File::open(self.firmware_path.clone()) {
             Ok(file) => file,
-            Err(err) => return Err(napi::Error{ reason: format!("Failed to open file: {}", err), status: napi::Status::InvalidArg  }),
+            Err(err) => {
+                return Err(napi::Error {
+                    reason: format!("Failed to open file: {}", err),
+                    status: napi::Status::InvalidArg,
+                })
+            }
         };
 
         // IMPORTANT: Change this to an actual memory map of a real chip
         let memory_map = session.target().memory_map.clone();
-        let mut loader = FlashLoader::new(memory_map, probe_rs::config::TargetDescriptionSource::BuiltIn);
-    
+        let mut loader = FlashLoader::new(
+            memory_map,
+            probe_rs::config::TargetDescriptionSource::BuiltIn,
+        );
+
         let download_result = match self.firmware_type.as_str() {
-            "bin" | "Bin" | "BIN" => {
-                loader.load_bin_data(&mut file, BinOptions { base_address: None, skip: 0 })
-            },
-            "hex" | "IHex" | "Hex" | "ihex" | "HEX" => {
-                loader.load_hex_data(&mut file)
-            },
-            "elf" | "Elf" | "ELF" => {
-                loader.load_elf_data(&mut file)
-            },
-            _ => {
-                Err(FileDownloadError::Object("Not a valid Bin/Hex/Elf file"))
-            }
+            "bin" | "Bin" | "BIN" => loader.load_bin_data(
+                &mut file,
+                BinOptions {
+                    base_address: None,
+                    skip: 0,
+                },
+            ),
+            "hex" | "IHex" | "Hex" | "ihex" | "HEX" => loader.load_hex_data(&mut file),
+            "elf" | "Elf" | "ELF" => loader.load_elf_data(&mut file),
+            _ => Err(FileDownloadError::Object("Not a valid Bin/Hex/Elf file")),
         };
 
         match download_result {
             Ok(_) => (),
-            Err(err) => return Err(napi::Error{ reason: format!("Failed to open firmware: {}", err), status: napi::Status::Unknown  }),
+            Err(err) => {
+                return Err(napi::Error {
+                    reason: format!("Failed to open firmware: {}", err),
+                    status: napi::Status::Unknown,
+                })
+            }
         }
-    
+
         // cb.boost_clock(&mut session)?;
-    
+
         let mut option = DownloadOptions::new();
         option.verify = true;
-        
+
         if self.skip_erase {
             option.keep_unwritten_bytes = true;
             option.skip_erase = true;
         }
-    
+
         match loader
             // TODO: hand out chip erase flag
             .commit(&mut session, option)
-            .map_err(FileDownloadError::Flash) {
-                Ok(_) => (),
-                Err(err) => return Err(napi::Error{ reason: format!("Failed to download firmware: {}", err), status: napi::Status::Unknown  }),
+            .map_err(FileDownloadError::Flash)
+        {
+            Ok(_) => (),
+            Err(err) => {
+                return Err(napi::Error {
+                    reason: format!("Failed to download firmware: {}", err),
+                    status: napi::Status::Unknown,
+                })
             }
-    
+        }
+
         Ok(())
     }
 
@@ -120,9 +164,21 @@ pub fn flash_firmware_file(ctx: CallContext) -> napi::Result<JsObject> {
     };
 
     if vid > u16::MAX as i32 || pid > u16::MAX as i32 {
-        return Err(napi::Error{ status: napi::Status::InvalidArg, reason: "Invalid VID/PID provided".to_string() });
+        return Err(napi::Error {
+            status: napi::Status::InvalidArg,
+            reason: "Invalid VID/PID provided".to_string(),
+        });
     }
 
-    let task = GenericFlasherTask { probe_sn: serial_num.clone(), probe_vid: vid as u16, probe_pid: pid as u16, target_name: target_name.clone(), firmware_type, speed_khz, firmware_path, skip_erase };
+    let task = GenericFlasherTask {
+        probe_sn: serial_num.clone(),
+        probe_vid: vid as u16,
+        probe_pid: pid as u16,
+        target_name: target_name.clone(),
+        firmware_type,
+        speed_khz,
+        firmware_path,
+        skip_erase,
+    };
     ctx.env.spawn(task).map(|t| t.promise_object())
 }

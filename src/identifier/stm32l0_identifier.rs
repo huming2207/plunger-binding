@@ -1,5 +1,5 @@
-use std::time::Duration;
 use probe_rs::{DebugProbeSelector, MemoryInterface, Probe};
+use std::time::Duration;
 
 use crate::common::{plunger_error::PlungerError, probe_info::ProbeInfo};
 
@@ -12,15 +12,21 @@ const STM32L0_FL_SIZE: u32 = 0x1ff8007c;
 
 pub struct STM32L0Identifier {
     probe: DebugProbeSelector,
-    target_name: String
+    target_name: String,
 }
 
 impl STM32L0Identifier {
     pub fn new(probe: &ProbeInfo, target_name: String) -> Result<STM32L0Identifier, PlungerError> {
         if !target_name.contains("STM32L0") && !target_name.contains("stm32l0") {
-            return Err(PlungerError::InvalidTarget(format!("Target {} is not STM32L0!", target_name)));
+            return Err(PlungerError::InvalidTarget(format!(
+                "Target {} is not STM32L0!",
+                target_name
+            )));
         } else {
-            Ok(STM32L0Identifier{ probe: probe.into(), target_name })
+            Ok(STM32L0Identifier {
+                probe: probe.into(),
+                target_name,
+            })
         }
     }
 }
@@ -28,12 +34,12 @@ impl STM32L0Identifier {
 impl BaseIdentifier for STM32L0Identifier {
     fn get_uid(&self) -> Result<Vec<u8>, PlungerError> {
         let mut probe = Probe::open(self.probe.clone())?;
-        
+
         probe.detach()?;
 
         let mut session = probe.attach(self.target_name.clone())?;
         let mut core = session.core(0)?;
-        
+
         if !core.core_halted()? {
             core.halt(Duration::from_secs(1))?;
         }
@@ -56,12 +62,12 @@ impl BaseIdentifier for STM32L0Identifier {
 
     fn get_flash_size(&self) -> Result<usize, PlungerError> {
         let mut probe = Probe::open(self.probe.clone())?;
-        
+
         probe.detach()?;
 
         let mut session = probe.attach(self.target_name.clone())?;
         let mut core = session.core(0)?;
-        
+
         if !core.core_halted()? {
             core.halt(Duration::from_secs(1))?;
         }
@@ -74,9 +80,26 @@ impl BaseIdentifier for STM32L0Identifier {
     }
 }
 
-pub(crate) fn identify_stm32l0(target_name: String, vid: u16, pid: u16, sn: Option<String>) -> napi::Result<TargetIdentity> {
-    let identifier = STM32L0Identifier::new(&ProbeInfo{ serial_num: sn.clone(), vid, pid, probe_type: None, short_id: None }, target_name.clone())?;
+pub(crate) fn identify_stm32l0(
+    target_name: String,
+    vid: u16,
+    pid: u16,
+    sn: Option<String>,
+) -> napi::Result<TargetIdentity> {
+    let identifier = STM32L0Identifier::new(
+        &ProbeInfo {
+            serial_num: sn.clone(),
+            vid,
+            pid,
+            probe_type: None,
+            short_id: None,
+        },
+        target_name.clone(),
+    )?;
     let unique_id = Some(identifier.get_uid()?);
     let flash_size = Some(identifier.get_flash_size()?);
-    Ok(TargetIdentity{ unique_id, flash_size })
+    Ok(TargetIdentity {
+        unique_id,
+        flash_size,
+    })
 }

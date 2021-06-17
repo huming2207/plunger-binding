@@ -13,13 +13,21 @@ pub struct ProbeInfo {
 
 impl From<ProbeInfo> for DebugProbeSelector {
     fn from(probe: ProbeInfo) -> Self {
-        DebugProbeSelector { vendor_id: probe.vid, product_id: probe.pid, serial_number: probe.serial_num.clone()  }
+        DebugProbeSelector {
+            vendor_id: probe.vid,
+            product_id: probe.pid,
+            serial_number: probe.serial_num.clone(),
+        }
     }
 }
 
 impl From<&ProbeInfo> for DebugProbeSelector {
     fn from(probe: &ProbeInfo) -> Self {
-        DebugProbeSelector { vendor_id: probe.vid, product_id: probe.pid, serial_number: probe.serial_num.clone()  }
+        DebugProbeSelector {
+            vendor_id: probe.vid,
+            product_id: probe.pid,
+            serial_number: probe.serial_num.clone(),
+        }
     }
 }
 
@@ -32,5 +40,5 @@ pub enum ProbeType {
     #[serde(rename = "FTDI")]
     Ftdi,
     #[serde(rename = "JLink")]
-    JLink
+    JLink,
 }

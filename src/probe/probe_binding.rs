@@ -1,4 +1,4 @@
-use crc::{CRC_32_CKSUM, Crc};
+use crc::{Crc, CRC_32_CKSUM};
 use napi::{CallContext, JsUnknown, Result};
 use probe_rs::Probe;
 use serde::{Deserialize, Serialize};
@@ -10,7 +10,7 @@ pub const CRC: Crc<u32> = Crc::<u32>::new(&CRC_32_CKSUM);
 #[derive(Serialize, Debug, Deserialize)]
 #[serde(rename_all = "camelCase")]
 pub struct ProbeInfoObject {
-    probes: Vec<ProbeInfo>
+    probes: Vec<ProbeInfo>,
 }
 
 #[js_function]
@@ -27,13 +27,17 @@ pub fn get_all_probes(ctx: CallContext) -> Result<JsUnknown> {
         };
 
         let short_id = match &probe.serial_number {
-            Some(sn) => {
-                Some(CRC.checksum(sn.as_bytes()))
-            }
+            Some(sn) => Some(CRC.checksum(sn.as_bytes())),
             None => None,
         };
 
-        let converted_probe = ProbeInfo { vid: probe.vendor_id, pid: probe.product_id, serial_num: probe.serial_number, probe_type: Some(probe_type), short_id };
+        let converted_probe = ProbeInfo {
+            vid: probe.vendor_id,
+            pid: probe.product_id,
+            serial_num: probe.serial_number,
+            probe_type: Some(probe_type),
+            short_id,
+        };
 
         new_probes.push(converted_probe);
     }

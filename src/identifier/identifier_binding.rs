@@ -25,23 +25,36 @@ struct STM32L0IdentifierTask {
     target_name: String,
 }
 
-impl napi::Task for  STM32L0IdentifierTask {
+impl napi::Task for STM32L0IdentifierTask {
     type Output = TargetIdentity;
     type JsValue = JsUnknown;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
         let result = match IDENTIFIER_MAP.lock() {
             Ok(ret) => ret,
-            Err(err) => return Err(napi::Error{ status: napi::Status::Unknown, reason: format!("Cannot acquire identifier map lock: {:?}", err) }),
+            Err(err) => {
+                return Err(napi::Error {
+                    status: napi::Status::Unknown,
+                    reason: format!("Cannot acquire identifier map lock: {:?}", err),
+                })
+            }
         };
 
         for (key, val) in result.iter() {
             if self.target_name.contains(key) {
-                return Ok(val(self.target_name.clone(), self.probe_vid, self.probe_pid, self.probe_sn.clone())?);
+                return Ok(val(
+                    self.target_name.clone(),
+                    self.probe_vid,
+                    self.probe_pid,
+                    self.probe_sn.clone(),
+                )?);
             }
         }
 
-        Err(napi::Error{ status: napi::Status::Unknown, reason: format!("Unsupported target {}", self.target_name) })
+        Err(napi::Error {
+            status: napi::Status::Unknown,
+            reason: format!("Unsupported target {}", self.target_name),
+        })
     }
 
     fn resolve(self, env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
@@ -64,9 +77,17 @@ pub fn identify_target(ctx: CallContext) -> napi::Result<JsObject> {
     };
 
     if vid > u16::MAX as i32 || pid > u16::MAX as i32 {
-        return Err(napi::Error{ status: napi::Status::InvalidArg, reason: "Invalid VID/PID provided".to_string() });
+        return Err(napi::Error {
+            status: napi::Status::InvalidArg,
+            reason: "Invalid VID/PID provided".to_string(),
+        });
     }
 
-    let task = STM32L0IdentifierTask { probe_sn: serial_num.clone(), probe_vid: vid as u16, probe_pid: pid as u16, target_name: target_name.clone() };
+    let task = STM32L0IdentifierTask {
+        probe_sn: serial_num.clone(),
+        probe_vid: vid as u16,
+        probe_pid: pid as u16,
+        target_name: target_name.clone(),
+    };
     ctx.env.spawn(task).map(|t| t.promise_object())
 }

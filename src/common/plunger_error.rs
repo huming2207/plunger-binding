@@ -16,13 +16,15 @@ pub enum PlungerError {
 
 impl From<PlungerError> for napi::Error {
     fn from(err: PlungerError) -> Self {
-        napi::Error{ status: match err {
-            PlungerError::InvalidTarget(_) => napi::Status::InvalidArg,
-            PlungerError::InvalidProtectionLevel => napi::Status::GenericFailure,
-            PlungerError::ProbeRsSessionError(_) => napi::Status::GenericFailure,
-            PlungerError::ProbeRsCommError(_) => napi::Status::GenericFailure,
-            PlungerError::StateError(_) => napi::Status::Unknown,
-        },
-            reason: err.to_string(), }
+        napi::Error {
+            status: match err {
+                PlungerError::InvalidTarget(_) => napi::Status::InvalidArg,
+                PlungerError::InvalidProtectionLevel => napi::Status::GenericFailure,
+                PlungerError::ProbeRsSessionError(_) => napi::Status::GenericFailure,
+                PlungerError::ProbeRsCommError(_) => napi::Status::GenericFailure,
+                PlungerError::StateError(_) => napi::Status::Unknown,
+            },
+            reason: err.to_string(),
+        }
     }
 }

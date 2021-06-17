@@ -4,7 +4,7 @@ use probe_rs::{Core, DebugProbeSelector, MemoryInterface, Probe};
 
 use crate::common::plunger_error::PlungerError;
 
-use super::{base_eraser::BaseEraser};
+use super::base_eraser::BaseEraser;
 
 use napi::{CallContext, JsNumber, JsObject, JsString, JsUndefined, Task};
 
@@ -18,16 +18,25 @@ const FLASH_OPT_BASE: u32 = 0x1ff80000;
 
 pub struct STM32L0Eraser {
     probe: DebugProbeSelector,
-    target_name: String
+    target_name: String,
 }
 
 impl STM32L0Eraser {
-    pub fn new(target_name: String, probe: DebugProbeSelector) -> Result<STM32L0Eraser, PlungerError> {
+    pub fn new(
+        target_name: String,
+        probe: DebugProbeSelector,
+    ) -> Result<STM32L0Eraser, PlungerError> {
         if !target_name.contains("STM32L0") && !target_name.contains("stm32l0") {
-            return Err(PlungerError::InvalidTarget(format!("Target {} is not STM32L0!", target_name)));
+            return Err(PlungerError::InvalidTarget(format!(
+                "Target {} is not STM32L0!",
+                target_name
+            )));
         }
 
-        Ok(STM32L0Eraser { target_name, probe: probe.clone() })
+        Ok(STM32L0Eraser {
+            target_name,
+            probe: probe.clone(),
+        })
     }
 
     fn wait_for_flash(core: &mut Core) -> Result<(), PlungerError> {
@@ -42,18 +51,18 @@ impl STM32L0Eraser {
     fn set_rdp_0_to_1(&self) -> Result<(), PlungerError> {
         // Prepare the probe
         let mut probe = Probe::open(self.probe.clone())?;
-        
+
         probe.detach()?;
 
         let mut session = probe.attach(self.target_name.clone())?;
         let mut core = session.core(0)?;
-        
+
         core.halt(Duration::from_secs(1))?;
-        
+
         // Enable erasing
         core.write_word_32(FLASH_PECR, 0x200)?;
         STM32L0Eraser::wait_for_flash(&mut core)?;
-        
+
         // Erase OPT1
         core.write_word_32(FLASH_OPT_BASE, 0)?;
         STM32L0Eraser::wait_for_flash(&mut core)?;
@@ -82,17 +91,15 @@ impl STM32L0Eraser {
 
 impl BaseEraser for STM32L0Eraser {
     fn mass_erase(&mut self) -> Result<(), PlungerError> {
-
         // Firstly, unlock the flash
         self.unlock_flash()?;
 
         let opt_val = self.get_option_byte()?;
 
-
         // RDP = 0xCC => RDP level 2, fully protected
         if opt_val & 0xff == 0xCC {
             return Err(PlungerError::InvalidProtectionLevel);
-        } 
+        }
 
         // RDP = 0xAA => RDP level 0, default
         if opt_val & 0xff == 0xAA {
@@ -110,7 +117,6 @@ impl BaseEraser for STM32L0Eraser {
 
         let mut session = probe.attach(self.target_name.clone())?;
         let mut core = session.core(0)?;
-
 
         println!("Setting RDP 1 to 0");
         let mut opt_lsb = opt_val & 0xffff;
@@ -131,7 +137,7 @@ impl BaseEraser for STM32L0Eraser {
     }
 
     fn unlock_flash(&mut self) -> Result<(), PlungerError> {
-        let probe = Probe::open(    self.probe.clone())?;
+        let probe = Probe::open(self.probe.clone())?;
 
         let mut session = probe.attach_under_reset(self.target_name.clone())?;
         let mut core = session.core(0)?;
@@ -148,8 +154,7 @@ impl BaseEraser for STM32L0Eraser {
         core.write_word_32(FLASH_PRGKEYR, 0x13141516)?;
         STM32L0Eraser::wait_for_flash(&mut core)?;
 
-
-        // Unlock OPTKEY - option bytes 
+        // Unlock OPTKEY - option bytes
         core.write_word_32(FLASH_OPTKEYR, 0xfbead9c8)?;
         core.write_word_32(FLASH_OPTKEYR, 0x24252627)?;
         STM32L0Eraser::wait_for_flash(&mut core)?;
@@ -170,7 +175,14 @@ impl Task for Stm32L0EraserTask {
     type JsValue = JsUndefined;
 
     fn compute(&mut self) -> napi::Result<Self::Output> {
-        let mut eraser = STM32L0Eraser::new(self.target_name.clone(), DebugProbeSelector{ serial_number: self.probe_sn.clone(), vendor_id: self.probe_vid, product_id: self.probe_pid })?;
+        let mut eraser = STM32L0Eraser::new(
+            self.target_name.clone(),
+            DebugProbeSelector {
+                serial_number: self.probe_sn.clone(),
+                vendor_id: self.probe_vid,
+                product_id: self.probe_pid,
+            },
+        )?;
         Ok(eraser.mass_erase()?)
     }
 
@@ -195,9 +207,17 @@ pub fn erase_stm32l0_async(ctx: CallContext) -> napi::Result<JsObject> {
     };
 
     if vid > u16::MAX as i32 || pid > u16::MAX as i32 {
-        return Err(napi::Error{ status: napi::Status::InvalidArg, reason: "Invalid VID/PID provided".to_string() });
+        return Err(napi::Error {
+            status: napi::Status::InvalidArg,
+            reason: "Invalid VID/PID provided".to_string(),
+        });
     }
 
-    let task = Stm32L0EraserTask { probe_sn: serial_num.clone(), probe_vid: vid as u16, probe_pid: pid as u16, target_name: target_name.clone() };
+    let task = Stm32L0EraserTask {
+        probe_sn: serial_num.clone(),
+        probe_vid: vid as u16,
+        probe_pid: pid as u16,
+        target_name: target_name.clone(),
+    };
     ctx.env.spawn(task).map(|t| t.promise_object())
 }

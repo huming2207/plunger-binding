@@ -1,8 +1,8 @@
 use std::usize;
 
 use crate::common::plunger_error::PlungerError;
-use serde::{Serialize, Deserialize};
-use serde_with::{serde_as, hex::Hex};
+use serde::{Deserialize, Serialize};
+use serde_with::{hex::Hex, serde_as};
 
 pub trait BaseIdentifier {
     fn get_uid(&self) -> Result<Vec<u8>, PlungerError>;
