@@ -87,10 +87,11 @@ impl Task for GenericFlasherTask {
             "bin" | "Bin" | "BIN" => loader.load_bin_data(
                 &mut file,
                 BinOptions {
-                    base_address: None,
+                    base_address: Some(0x08000000), // TODO: change to a parameter instead of hard-coded here
                     skip: 0,
                 },
             ),
+
             "hex" | "IHex" | "Hex" | "ihex" | "HEX" => loader.load_hex_data(&mut file),
             "elf" | "Elf" | "ELF" => loader.load_elf_data(&mut file),
             _ => Err(FileDownloadError::Object("Not a valid Bin/Hex/Elf file")),
@@ -105,8 +106,6 @@ impl Task for GenericFlasherTask {
                 })
             }
         }
-
-        // cb.boost_clock(&mut session)?;
 
         let mut option = DownloadOptions::new();
         option.verify = true;
@@ -143,7 +142,7 @@ impl Task for GenericFlasherTask {
     }
 }
 
-#[js_function(7)]
+#[js_function(8)]
 pub fn flash_firmware_file(ctx: CallContext) -> napi::Result<JsObject> {
     let firmware_path = ctx.get::<JsString>(0)?.into_utf8()?.as_str()?.to_string();
     let target_name = ctx.get::<JsString>(1)?.into_utf8()?.as_str()?.to_string();
@@ -154,6 +153,7 @@ pub fn flash_firmware_file(ctx: CallContext) -> napi::Result<JsObject> {
         napi::Either::A(erase) => erase.get_value().unwrap_or(false),
         napi::Either::B(_) => false,
     };
+
     let speed_khz = match ctx.try_get::<JsNumber>(6)? {
         napi::Either::A(sn) => Some(sn.get_uint32().unwrap_or(1800)),
         napi::Either::B(_) => None,
