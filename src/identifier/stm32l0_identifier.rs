@@ -7,7 +7,7 @@ use super::base_identifier::{BaseIdentifier, TargetIdentity};
 
 const STM32L0_UID_LSB: u32 = 0x1ff80050;
 const STM32L0_UID_MID: u32 = 0x1ff80054;
-const STM32L0_UID_MSB: u32 = 0x1ff80058;
+const STM32L0_UID_MSB: u32 = 0x1ff80064;
 const STM32L0_FL_SIZE: u32 = 0x1ff8007c;
 
 pub struct STM32L0Identifier {

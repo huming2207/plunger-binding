@@ -1,6 +1,6 @@
 {
   "name": "plunger-binding",
-  "version": "1.0.10",
+  "version": "1.0.11",
   "description": "Probe-rs flasher binding",
   "license": "GPL-3.0",
   "author": "Jackson Ming Hu <huming2207@gmail.com>",
