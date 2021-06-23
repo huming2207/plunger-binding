@@ -1,7 +1,7 @@
-use std::{collections::HashMap, sync::Mutex};
+use std::{collections::HashMap, sync::Mutex, time::Duration};
 
 use lazy_static::lazy_static;
-use napi::{CallContext, JsNumber, JsObject, JsString, JsUnknown};
+use napi::{CallContext, JsNumber, JsObject, JsString};
 
 use crate::identifier::stm32l0_identifier::identify_stm32l0;
 
@@ -18,18 +18,13 @@ lazy_static! {
     };
 }
 
-struct IdentifierTask {
-    probe_sn: Option<String>,
-    probe_vid: u16,
-    probe_pid: u16,
+async fn identify_with_timeout(
     target_name: String,
-}
-
-impl napi::Task for IdentifierTask {
-    type Output = TargetIdentity;
-    type JsValue = JsUnknown;
-
-    fn compute(&mut self) -> napi::Result<Self::Output> {
+    vid: u16,
+    pid: u16,
+    serial_num: Option<String>,
+) -> napi::Result<TargetIdentity> {
+    let handle = tokio::task::spawn_blocking(move || {
         let result = match IDENTIFIER_MAP.lock() {
             Ok(ret) => ret,
             Err(err) => {
@@ -41,28 +36,32 @@ impl napi::Task for IdentifierTask {
         };
 
         for (key, val) in result.iter() {
-            if self.target_name.contains(key) {
-                return Ok(val(
-                    self.target_name.clone(),
-                    self.probe_vid,
-                    self.probe_pid,
-                    self.probe_sn.clone(),
-                )?);
+            if target_name.contains(key) {
+                return Ok(val(target_name.clone(), vid, pid, serial_num.clone())?);
             }
         }
 
         Err(napi::Error {
             status: napi::Status::Unknown,
-            reason: format!("Unsupported target for identify {}", self.target_name),
+            reason: format!("Unsupported target for identify {}", target_name),
         })
-    }
+    });
 
-    fn resolve(self, env: napi::Env, output: Self::Output) -> napi::Result<Self::JsValue> {
-        env.to_js_value(&output)
-    }
-
-    fn reject(self, _env: napi::Env, err: napi::Error) -> napi::Result<Self::JsValue> {
-        Err(err)
+    if let Ok(result) = tokio::time::timeout(Duration::from_secs(3), handle).await {
+        match result {
+            Ok(ret) => return ret,
+            Err(err) => {
+                return Err(napi::Error {
+                    status: napi::Status::Unknown,
+                    reason: format!("Unexpected failure to join identifier thread: {}", err),
+                })
+            }
+        }
+    } else {
+        return Err(napi::Error {
+            status: napi::Status::GenericFailure,
+            reason: "Identifier is not responding after 3 seconds".to_owned(),
+        });
     }
 }
 
@@ -83,11 +82,8 @@ pub fn identify_target(ctx: CallContext) -> napi::Result<JsObject> {
         });
     }
 
-    let task = IdentifierTask {
-        probe_sn: serial_num.clone(),
-        probe_vid: vid as u16,
-        probe_pid: pid as u16,
-        target_name: target_name.clone(),
-    };
-    ctx.env.spawn(task).map(|t| t.promise_object())
+    ctx.env.execute_tokio_future(
+        identify_with_timeout(target_name, vid as u16, pid as u16, serial_num),
+        |&mut env, data| env.to_js_value(&data),
+    )
 }

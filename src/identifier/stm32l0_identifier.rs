@@ -33,14 +33,20 @@ impl STM32L0Identifier {
 
 impl BaseIdentifier for STM32L0Identifier {
     fn get_uid(&self) -> Result<Vec<u8>, PlungerError> {
-        let mut probe = Probe::open(self.probe.clone())?;
+        println!("Opening probe");
+        let probe = Probe::open(self.probe.clone())?;
 
-        probe.detach()?;
+        println!("Detaching probe");
+        // probe.detach()?;
 
-        let mut session = probe.attach(self.target_name.clone())?;
+        println!("Attaching to session");
+        let mut session = probe.attach_under_reset(self.target_name.clone())?;
+        println!("Attaching to core");
         let mut core = session.core(0)?;
 
+        println!("Try halt");
         if !core.core_halted()? {
+            println!("Go halt");
             core.halt(Duration::from_secs(1))?;
         }
 
