@@ -41,6 +41,7 @@ impl BaseIdentifier for STM32L0Identifier {
 
         println!("Attaching to session");
         let mut session = probe.attach_under_reset(self.target_name.clone())?;
+
         println!("Attaching to core");
         let mut core = session.core(0)?;
 

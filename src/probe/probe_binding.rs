@@ -54,14 +54,14 @@ pub fn get_all_probes(ctx: CallContext) -> Result<JsUnknown> {
     ctx.env.to_js_value(&value)
 }
 
-// Probe-rs tend to return all DAPLink probes even if it is not really ready 
+// Probe-rs tend to return all DAPLink probes even if it is not really ready
 // Therefore it may cause some random USB stack lockup issue
 // Here's a temporary fix for now...
 fn is_daplink_ready(serial_num: String) -> bool {
     let mut enumerator = udev::Enumerator::new().unwrap();
 
     enumerator.match_property("ID_FS_LABEL", "DAPLINK").unwrap();
-  
+
     for device in enumerator.scan_devices().unwrap() {
         println!("found device: {:?}", device.sysname());
         for property in device.properties() {
