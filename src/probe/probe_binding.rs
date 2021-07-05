@@ -26,6 +26,13 @@ pub fn get_all_probes(ctx: CallContext) -> Result<JsUnknown> {
             probe_rs::DebugProbeType::JLink => ProbeType::JLink,
         };
 
+        // An naive workaround for DAPLink initialising issue
+        if matches!(probe_type, ProbeType::DapLink) && probe.serial_number.is_some() {
+            if !is_daplink_ready(probe.serial_number.clone().unwrap()) {
+                continue;
+            }
+        }
+
         let short_id = match &probe.serial_number {
             Some(sn) => Some(CRC.checksum(sn.as_bytes())),
             None => None,
@@ -45,4 +52,24 @@ pub fn get_all_probes(ctx: CallContext) -> Result<JsUnknown> {
     let value = ProbeInfoObject { probes: new_probes };
 
     ctx.env.to_js_value(&value)
+}
+
+// Probe-rs tend to return all DAPLink probes even if it is not really ready 
+// Therefore it may cause some random USB stack lockup issue
+// Here's a temporary fix for now...
+fn is_daplink_ready(serial_num: String) -> bool {
+    let mut enumerator = udev::Enumerator::new().unwrap();
+
+    enumerator.match_property("ID_FS_LABEL", "DAPLINK").unwrap();
+  
+    for device in enumerator.scan_devices().unwrap() {
+        println!("found device: {:?}", device.sysname());
+        for property in device.properties() {
+            if property.name().eq("ID_SERIAL_SHORT") && property.value().eq(serial_num.as_str()) {
+                return true;
+            }
+        }
+    }
+
+    return false;
 }
