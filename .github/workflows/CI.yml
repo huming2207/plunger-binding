@@ -64,7 +64,7 @@ jobs:
           key: npm-cache-${{ matrix.os }}-node@14-${{ hashFiles('yarn.lock') }}
 
       - name: Install probe-rs dependencies
-        run: sudo apt-get install libusb-1.0-0-dev libftdi1-dev -y
+        run: sudo apt-get install libusb-1.0-0-dev libftdi1-dev libudev-dev -y
 
       - name: 'Install dependencies'
         run: yarn install --frozen-lockfile --registry https://registry.npmjs.org --network-timeout 300000
